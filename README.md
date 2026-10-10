@@ -4,6 +4,13 @@ Un RAG mínimo que corre hoy en esta máquina sin Docker, y que migra a
 [Floci](https://github.com/floci-io/floci) —emulador local de AWS— cambiando
 una variable de entorno.
 
+## Las dos guías
+
+| Hoja | Qué cubre |
+|---|---|
+| [`guia.html`](guia.html) | **Empieza aquí.** Uso del RAG: indexar, buscar, preguntar. Qué hace cada archivo y las decisiones de diseño. |
+| [`floci.html`](floci.html) | Paso siguiente: apuntar el almacén a S3 y DynamoDB emulados con Floci. |
+
 ## Lo primero: Floci no es una herramienta de RAG
 
 Floci es la alternativa libre a LocalStack: te da S3, DynamoDB, Lambda y 60+
@@ -42,24 +49,26 @@ muestra el prompt que habría enviado.
 
 ## Pasar a Floci
 
+Paso a paso completo en [`floci.html`](floci.html). El resumen:
+
 ```bash
-curl -fsSL https://floci.io/install.sh | sh     # CLI (hay binario linux-arm64)
+curl -fsSL https://floci.io/install.sh | sh     # CLI
 floci start                                      # necesita Docker corriendo
 
 export RAG_BACKEND=floci
 python src/ingest.py                             # crea bucket y tabla solos
 ```
 
-## Recursos medidos en esta máquina
+## Huella
 
-aarch64, 8 cores, 7.7 GB RAM, sin GPU.
+Medido en CPU, sin GPU.
 
 | Qué | Cuánto |
 |---|---|
-| `.venv` | 210 MB (sin torch: fastembed usa onnxruntime) |
+| `.venv` | 210 MB — fastembed usa onnxruntime, no torch |
 | Modelo de embeddings | 241 MB en `~/.cache/fastembed` |
 | Carga del modelo | ~20 s la primera vez, ~1 s después |
-| Vectorizar | ~7 ms por fragmento en CPU |
+| Vectorizar | ~7 ms por fragmento |
 | Imagen de Floci | 90 MB · ~13 MB idle |
 
 ## Decisiones que vale la pena conocer
