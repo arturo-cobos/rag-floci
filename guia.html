@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG sobre Floci</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+  /* Identidad Lite Thinking (tipo 1): lienzo claro, amarillo marca, bandas negras. */
+  :root {
+    color-scheme: light;
+    --yellow: #FFE900; --yellow-mid: #FFF266; --yellow-pale: #FFFDE7;
+    --grey-bg: #F2F2F2; --grey-line: #D9D9D9; --grey-txt: #666666;
+    --black: #1A1A1A; --white: #FFFFFF; --pink-line: #AF3FB9;
+    --sans: "Segoe UI", "Open Sans", system-ui, -apple-system, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--white); color: var(--black); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+  .stripe { position: fixed; inset: 0 auto 0 0; width: 10px; background: var(--yellow); z-index: 5; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding-inline: 40px 24px; padding-block: 36px 48px; display: grid; gap: 56px; }
+  @media (max-width: 640px) { .wrap { padding-inline: 26px 16px; gap: 44px; } .stripe { width: 6px; } }
+
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+  p { margin: 0; }
+  code { font-family: var(--mono); font-size: .86em; background: var(--grey-bg); padding: 1px 5px; border-radius: 3px; }
+  .hl { background: var(--yellow); padding: 0 .18em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  a { color: var(--black); text-decoration-color: var(--yellow); text-decoration-thickness: 3px; text-underline-offset: 2px; }
+
+  .head { display: grid; grid-template-columns: 1fr minmax(260px, 360px); gap: 28px; align-items: start; }
+  @media (max-width: 820px) { .head { grid-template-columns: 1fr; } }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--grey-txt); }
+  h1 { font-size: clamp(28px, 4.4vw, 46px); font-weight: 800; line-height: 1.1; text-transform: uppercase; letter-spacing: -.01em; margin-top: 8px; }
+  .sub { font-weight: 300; font-size: clamp(16px, 1.8vw, 19px); color: var(--grey-txt); margin-top: 12px; max-width: 60ch; }
+  .underline { width: 64px; height: 5px; background: var(--yellow); margin-top: 16px; }
+  .synth { background: var(--yellow); padding: 20px 22px; font-weight: 600; font-size: 16px; line-height: 1.45; box-shadow: 0 8px 20px -10px rgba(120,100,0,.55); }
+  .synth small { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+
+  .sec { display: grid; gap: 20px; }
+  .sec-head { display: grid; gap: 6px; }
+  .sec-head h2 { font-size: clamp(20px, 2.4vw, 26px); font-weight: 800; text-transform: uppercase; }
+  .sec-head h2 .y { background: var(--yellow); padding: 0 .2em; }
+  .sec-head p { color: var(--grey-txt); max-width: 70ch; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 820px) { .cards { grid-template-columns: 1fr; } }
+  .card { border: 1px solid var(--grey-line); display: grid; grid-template-rows: auto 1fr; }
+  .card-h { background: linear-gradient(180deg, var(--yellow-mid), var(--yellow)); padding: 12px 16px; font-weight: 800; text-transform: uppercase; font-size: 14px; letter-spacing: .03em; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; box-shadow: 0 4px 10px -6px rgba(120,100,0,.6); }
+  .card-h span { font-family: var(--mono); font-weight: 400; text-transform: none; font-size: 12px; letter-spacing: 0; }
+  .card-b { padding: 14px 16px 16px; display: grid; gap: 8px; align-content: start; }
+  .card-b ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+
+  /* Pasos numerados con comando */
+  .pasos { display: grid; gap: 14px; counter-reset: p; }
+  .paso { display: grid; grid-template-columns: 54px 1fr; border: 1px solid var(--grey-line); }
+  @media (max-width: 640px) { .paso { grid-template-columns: 40px 1fr; } }
+  .paso > .num { background: var(--yellow); display: grid; place-items: center; font-weight: 800; font-size: 20px; border-right: 1px solid rgba(0,0,0,.12); }
+  .paso.opt > .num { background: var(--grey-bg); color: var(--grey-txt); }
+  .paso-b { padding: 14px 16px 16px; display: grid; gap: 10px; min-width: 0; }
+  .paso-b h3 { font-size: 16px; font-weight: 800; }
+  .paso-b .porque { color: var(--grey-txt); font-size: 14px; }
+  pre { margin: 0; overflow-x: auto; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; background: var(--black); color: #EEE; padding: 12px 14px; }
+  pre .p { color: var(--yellow); }
+  pre .c { color: #8A8A8A; }
+  .espera { border-left: 4px solid var(--yellow); background: var(--yellow-pale); padding: 9px 12px; font-size: 13.5px; }
+  .espera b { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; display: block; color: var(--grey-txt); margin-bottom: 3px; }
+  .espera pre { background: transparent; color: var(--black); padding: 4px 0 0; font-size: 12px; }
+
+  /* Conmutador local / floci */
+  .toggle { display: flex; gap: 0; border: 1px solid var(--grey-line); width: fit-content; }
+  .toggle button { all: unset; cursor: pointer; padding: 9px 20px; font-family: var(--mono); font-size: 13px; }
+  .toggle button:hover { background: var(--yellow-pale); }
+  .toggle button:focus-visible { outline: 2px solid var(--black); outline-offset: -2px; }
+  .toggle button[aria-pressed="true"] { background: var(--black); color: var(--yellow); font-weight: 600; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tbl th { text-align: left; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--grey-txt); padding: 8px 10px; border-bottom: 2px solid var(--black); }
+  .tbl td { padding: 9px 10px; border-bottom: 1px solid var(--grey-line); }
+  .tbl .mono { font-family: var(--mono); font-size: 13px; }
+  .wrapt { border: 1px solid var(--grey-line); overflow-x: auto; }
+  .wrapt .tbl { min-width: 560px; }
+
+  .diagram { border: 1px solid var(--grey-line); overflow-x: auto; background: var(--white); }
+  .diagram svg { display: block; min-width: 820px; width: 100%; height: auto; }
+
+  .band-black { background: var(--black); color: var(--white); padding: 20px 24px; display: grid; gap: 10px; }
+  .band-black h3 { color: var(--yellow); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+  .band-black ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+  .band-black code { background: #333; color: var(--yellow); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 820px) { .two { grid-template-columns: 1fr; } }
+  .band-grey { background: var(--grey-bg); padding: 18px 22px; display: grid; gap: 8px; }
+  .band-grey h3 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+  .band-grey ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+
+  .foot { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .pill { flex: 1 1 520px; background: var(--black); color: var(--white); border-radius: 999px; padding: 14px 28px; font-weight: 700; font-size: 16px; line-height: 1.4; }
+  .pill em { color: var(--yellow); font-style: normal; }
+  .logo { height: 38px; width: auto; }
+</style>
+
+<div class="stripe" aria-hidden="true"></div>
+<main class="wrap">
+
+  <header class="head">
+    <div>
+      <div class="eyebrow">Paso a paso · medido en esta máquina</div>
+      <h1>RAG sobre <span class="hl">Floci</span></h1>
+      <p class="sub">Un RAG que corre hoy sin Docker, y que migra a S3 y DynamoDB emulados cambiando una variable de entorno.</p>
+      <div class="underline"></div>
+    </div>
+    <aside class="synth">
+      <small>Antes de empezar</small>
+      Floci <b>no es una herramienta de RAG</b>: es un emulador local de AWS, la alternativa libre a LocalStack. Sirve para montar el RAG con forma de AWS sin gastar, pero el RAG lo escribes tú. Y <b>necesita Docker</b>.
+    </aside>
+  </header>
+
+  <!-- ¿Se puede acá? -->
+  <section class="sec" aria-labelledby="s-rec">
+    <div class="sec-head">
+      <h2 id="s-rec">¿Se puede <span class="y">montar acá?</span></h2>
+      <p>Sí. Lo medí en esta máquina: aarch64, 8 núcleos, 7,7 GB de RAM, sin GPU. El cuello de botella es el disco, no la memoria.</p>
+    </div>
+    <div class="wrapt">
+      <table class="tbl">
+        <thead><tr><th>Qué</th><th>Cuánto</th><th>Nota</th></tr></thead>
+        <tbody>
+          <tr><td>Entorno Python</td><td class="mono">210 MB</td><td>fastembed usa onnxruntime, no torch — eso ahorra ~1,5 GB</td></tr>
+          <tr><td>Modelo de embeddings</td><td class="mono">241 MB</td><td>multilingüe, 384 dimensiones</td></tr>
+          <tr><td>Cargar el modelo</td><td class="mono">~20 s / ~1 s</td><td>la primera vez lo descarga; después es instantáneo</td></tr>
+          <tr><td>Vectorizar</td><td class="mono">~7 ms</td><td>por fragmento, en CPU</td></tr>
+          <tr><td>Imagen de Floci</td><td class="mono">90 MB</td><td>~13 MB de RAM en reposo</td></tr>
+          <tr><td>Docker (si lo instalas)</td><td class="mono">~1 GB</td><td>necesita <code>sudo</code>, no lo puedo hacer yo</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="two">
+      <div class="band-grey">
+        <h3>Lo que cabe sin problema</h3>
+        <p>El RAG completo con Floci para S3 y DynamoDB: <b>~1,5 GB</b> en total. Te quedan unos 6,5 GB de los 8,2 libres.</p>
+        <ul>
+          <li>Esos dos servicios corren <b>dentro</b> del contenedor de Floci: no levantan nada aparte.</li>
+          <li>La búsqueda vectorial va en numpy, en tu proceso.</li>
+        </ul>
+      </div>
+      <div class="band-black">
+        <h3>Lo que apretaría</h3>
+        <ul>
+          <li><b>OpenSearch vía Floci</b> para k-NN de verdad: Floci le levanta un contenedor aparte de ~1,5 GB y la JVM pide 1–2 GB de RAM.</li>
+          <li><b>Un LLM local</b> para la generación: sin GPU y con 8 GB de disco, no. La generación va por API.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cómo funciona -->
+  <section class="sec" aria-labelledby="s-rag">
+    <div class="sec-head">
+      <h2 id="s-rag">Cómo funciona <span class="y">un RAG</span></h2>
+      <p>En vez de esperar que el modelo se acuerde de tus documentos, se los pasas en el momento de preguntar. El modelo no aprende nada: lee lo que le pones delante.</p>
+    </div>
+    <div class="diagram">
+      <svg viewBox="0 0 900 250" role="img" aria-label="Flujo del RAG: los documentos se parten en fragmentos y se vectorizan hacia el almacén; la pregunta se vectoriza, se buscan los fragmentos más cercanos y se arma el prompt para el modelo.">
+        <defs>
+          <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#1A1A1A"/>
+          </marker>
+        </defs>
+        <g font-family="Segoe UI, Open Sans, sans-serif" font-size="13">
+          <text x="14" y="20" font-size="10.5" font-weight="700" letter-spacing="1.2" fill="#666">UNA VEZ · INGESTA</text>
+          <rect x="14" y="30" width="128" height="46" fill="#F2F2F2" stroke="#D9D9D9"/>
+          <text x="28" y="50" font-weight="700" font-size="12">docs/</text>
+          <text x="28" y="67" fill="#666" font-size="11.5">tus .md</text>
+          <path d="M142,53 L186,53" stroke="#1A1A1A" stroke-width="1.6" marker-end="url(#a)"/>
+          <rect x="192" y="30" width="128" height="46" fill="#F2F2F2" stroke="#D9D9D9"/>
+          <text x="206" y="50" font-weight="700" font-size="12">fragmentos</text>
+          <text x="206" y="67" fill="#666" font-size="11.5">~800 car · solape</text>
+          <path d="M320,53 L364,53" stroke="#1A1A1A" stroke-width="1.6" marker-end="url(#a)"/>
+          <rect x="370" y="30" width="128" height="46" fill="#FFE900" stroke="#1A1A1A" stroke-width="2"/>
+          <text x="384" y="50" font-weight="800" font-size="12">embeddings</text>
+          <text x="384" y="67" font-size="11.5">384 dims</text>
+          <path d="M498,53 C546,53 546,110 566,110" fill="none" stroke="#1A1A1A" stroke-width="1.6" marker-end="url(#a)"/>
+
+          <rect x="572" y="84" width="150" height="76" fill="#1A1A1A"/>
+          <text x="647" y="110" text-anchor="middle" fill="#FFE900" font-weight="800" font-size="13" letter-spacing="1">ALMACÉN</text>
+          <text x="647" y="129" text-anchor="middle" fill="#FFF" font-size="11.5">S3 + DynamoDB</text>
+          <text x="647" y="146" text-anchor="middle" fill="#999" font-size="11">(o archivos)</text>
+
+          <text x="14" y="130" font-size="10.5" font-weight="700" letter-spacing="1.2" fill="#666">CADA PREGUNTA</text>
+          <rect x="14" y="140" width="128" height="46" fill="#F2F2F2" stroke="#D9D9D9"/>
+          <text x="28" y="160" font-weight="700" font-size="12">pregunta</text>
+          <text x="28" y="177" fill="#666" font-size="11.5">texto libre</text>
+          <path d="M142,163 L186,163" stroke="#1A1A1A" stroke-width="1.6" marker-end="url(#a)"/>
+          <rect x="192" y="140" width="128" height="46" fill="#FFE900" stroke="#1A1A1A" stroke-width="2"/>
+          <text x="206" y="160" font-weight="800" font-size="12">mismo modelo</text>
+          <text x="206" y="177" font-size="11.5">vector de la query</text>
+          <path d="M320,163 L364,163" stroke="#1A1A1A" stroke-width="1.6" marker-end="url(#a)"/>
+          <rect x="370" y="140" width="128" height="46" fill="#F2F2F2" stroke="#D9D9D9"/>
+          <text x="384" y="160" font-weight="700" font-size="12">coseno</text>
+          <text x="384" y="177" fill="#666" font-size="11.5">top 4 más cerca</text>
+          <path d="M498,163 C534,163 534,122 566,122" fill="none" stroke="#1A1A1A" stroke-width="1.6" marker-end="url(#a)" stroke-dasharray="4 3"/>
+
+          <path d="M722,122 L766,122" stroke="#1A1A1A" stroke-width="1.6" marker-end="url(#a)"/>
+          <rect x="772" y="99" width="114" height="46" fill="#FFFDE7" stroke="#D9D9D9"/>
+          <text x="786" y="119" font-weight="700" font-size="12">prompt</text>
+          <text x="786" y="136" fill="#666" font-size="11.5">→ Claude</text>
+
+          <text x="14" y="228" font-size="11" fill="#666">La flecha punteada es una lectura: la búsqueda consulta el almacén, no le escribe.</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Paso a paso -->
+  <section class="sec" aria-labelledby="s-pasos">
+    <div class="sec-head">
+      <h2 id="s-pasos">Paso a paso <span class="y">sin Docker</span></h2>
+      <p>El proyecto ya está creado en <code>~/Work/rag-floci</code> y los pasos 1 a 3 ya los corrí. Están aquí para que sepas qué pasó y puedas repetirlo en otra máquina.</p>
+    </div>
+    <div class="pasos">
+
+      <div class="paso">
+        <div class="num">1</div>
+        <div class="paso-b">
+          <h3>Crear el entorno</h3>
+          <p class="porque">Python 3.12 y no el 3.14 del sistema: muchas ruedas compiladas todavía no existen para 3.14 en aarch64.</p>
+          <pre><span class="p">$</span> cd ~/Work/rag-floci
+<span class="p">$</span> uv venv --python 3.12 .venv
+<span class="p">$</span> uv pip install -r requirements.txt</pre>
+          <div class="espera"><b>Deberías ver</b>numpy, boto3, fastembed y onnxruntime instalados. 210 MB en total.</div>
+        </div>
+      </div>
+
+      <div class="paso">
+        <div class="num">2</div>
+        <div class="paso-b">
+          <h3>Poner tus documentos</h3>
+          <p class="porque">Van en <code>docs/</code> como <code>.md</code> o <code>.txt</code>. Dejé tres de ejemplo: BIAN, módulo de depósitos y conceptos de RAG.</p>
+          <pre><span class="p">$</span> cp ~/mis-notas/*.md docs/</pre>
+          <div class="espera"><b>Ojo</b>Markdown o texto plano. Para PDF hace falta un extractor aparte: <code>pdftotext</code> o la librería <code>pypdf</code>.</div>
+        </div>
+      </div>
+
+      <div class="paso">
+        <div class="num">3</div>
+        <div class="paso-b">
+          <h3>Indexar</h3>
+          <p class="porque">Parte los documentos, los vectoriza y los guarda. Corre esto cada vez que cambien.</p>
+          <pre><span class="p">$</span> source .venv/bin/activate
+<span class="p">$</span> export PYTHONPATH=src
+<span class="p">$</span> python src/ingest.py</pre>
+          <div class="espera"><b>Salida real</b><pre>Almacén: local (archivos en ./almacen)
+  bian-service-domain.md   1514 car  →  3 fragmentos
+  core-depositos.md        1649 car  →  3 fragmentos
+  rag-conceptos.md         1723 car  →  4 fragmentos
+Listo: 10 fragmentos, 384 dimensiones cada uno.</pre></div>
+        </div>
+      </div>
+
+      <div class="paso">
+        <div class="num">4</div>
+        <div class="paso-b">
+          <h3>Buscar</h3>
+          <p class="porque">Esto es la R del RAG, sola. Úsala para calibrar: si lo que recupera no sirve, lo que genere tampoco.</p>
+          <pre><span class="p">$</span> python src/buscar.py <span class="c">"¿qué guarda un Control Record?"</span></pre>
+          <div class="espera"><b>Salida real</b><pre>[0.587] bian-service-domain.md · #1
+  …Cada Service Domain administra exactamente
+  un Control Record. Es el objeto de datos que…
+[0.494] core-depositos.md · #2</pre></div>
+        </div>
+      </div>
+
+      <div class="paso">
+        <div class="num">5</div>
+        <div class="paso-b">
+          <h3>Preguntar</h3>
+          <p class="porque">Recupera y arma el prompt. Sin API key te muestra el prompt que habría enviado — así ves exactamente qué recibe el modelo.</p>
+          <pre><span class="p">$</span> python src/preguntar.py <span class="c">"¿qué es un Behavior Qualifier?"</span>
+<span class="c"># con generación:</span>
+<span class="p">$</span> export ANTHROPIC_API_KEY=sk-ant-…
+<span class="p">$</span> python src/preguntar.py <span class="c">"¿qué es un Behavior Qualifier?"</span></pre>
+          <div class="espera"><b>El prompt incluye</b>«Responde usando únicamente los fragmentos de abajo. Si no alcanzan, dilo: no inventes.» Esa restricción es la que baja las alucinaciones.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Pasar a Floci -->
+  <section class="sec" aria-labelledby="s-floci">
+    <div class="sec-head">
+      <h2 id="s-floci">Pasar a <span class="y">Floci</span></h2>
+      <p>Aquí empieza lo que necesita Docker. Los dos primeros pasos llevan <code>sudo</code>, así que los corres tú.</p>
+    </div>
+    <div class="pasos">
+
+      <div class="paso">
+        <div class="num">6</div>
+        <div class="paso-b">
+          <h3>Instalar Docker</h3>
+          <p class="porque">Floci arranca un contenedor y bind-montea <code>/var/run/docker.sock</code>. Sin demonio no hay emulador.</p>
+          <pre><span class="p">$</span> sudo pacman -S docker
+<span class="p">$</span> sudo systemctl enable --now docker
+<span class="p">$</span> sudo usermod -aG docker $USER   <span class="c"># cierra sesión y vuelve a entrar</span></pre>
+          <div class="espera"><b>Verifica con</b><pre>docker run --rm hello-world</pre></div>
+        </div>
+      </div>
+
+      <div class="paso">
+        <div class="num">7</div>
+        <div class="paso-b">
+          <h3>Instalar y arrancar Floci</h3>
+          <p class="porque">El instalador detecta <code>aarch64</code> y baja el binario <code>linux-arm64</code>. El CLI se instala sin Docker; arrancar sí lo necesita.</p>
+          <pre><span class="p">$</span> curl -fsSL https://floci.io/install.sh | sh
+<span class="p">$</span> floci start
+<span class="p">$</span> floci doctor   <span class="c"># diagnóstico si algo no cuadra</span></pre>
+          <div class="espera"><b>Deberías ver</b>Todo AWS en un solo puerto: <code>localhost:4566</code>. Son 90 MB de imagen.</div>
+        </div>
+      </div>
+
+      <div class="paso">
+        <div class="num">8</div>
+        <div class="paso-b">
+          <h3>Cambiar una variable y reindexar</h3>
+          <p class="porque">Aquí está el punto del diseño: no se toca ni una línea de código. <code>ingest.py</code> crea el bucket y la tabla si no existen.</p>
+          <pre><span class="p">$</span> export RAG_BACKEND=floci
+<span class="p">$</span> python src/ingest.py
+<span class="p">$</span> python src/buscar.py <span class="c">"¿qué guarda un Control Record?"</span></pre>
+          <div class="espera"><b>Deberías ver</b>La primera línea cambia a <code>Almacén: floci (http://localhost:4566)</code>. Los resultados son idénticos: el almacén cambió, los vectores no.</div>
+        </div>
+      </div>
+
+      <div class="paso opt">
+        <div class="num">9</div>
+        <div class="paso-b">
+          <h3>Mirarlo con el AWS CLI</h3>
+          <p class="porque">Opcional, pero es el momento en que se entiende qué hace Floci: los mismos comandos de AWS, contra tu máquina.</p>
+          <pre><span class="p">$</span> eval $(floci env)
+<span class="p">$</span> aws s3 ls s3://rag-docs
+<span class="p">$</span> aws dynamodb scan --table-name rag-chunks --max-items 1</pre>
+          <div class="espera"><b>Esto es lo valioso</b>Ese código con <code>boto3</code> funciona contra AWS real cambiando solo el endpoint. Probaste la integración sin abrir cuenta.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Qué cambia entre backends -->
+  <section class="sec" aria-labelledby="s-back">
+    <div class="sec-head">
+      <h2 id="s-back">Qué cambia <span class="y">entre los dos</span></h2>
+      <p>Una sola interfaz en <code>src/store.py</code>, dos implementaciones. Dale al conmutador.</p>
+    </div>
+    <div class="toggle" role="group" aria-label="Elegir almacén">
+      <button type="button" id="b-local" aria-pressed="true">RAG_BACKEND=local</button>
+      <button type="button" id="b-floci" aria-pressed="false">RAG_BACKEND=floci</button>
+    </div>
+    <div class="wrapt">
+      <table class="tbl">
+        <thead><tr><th>Pieza</th><th>Dónde vive</th><th>Cómo se escribe</th></tr></thead>
+        <tbody id="filas"></tbody>
+      </table>
+    </div>
+    <div class="band-grey" id="nota-back"></div>
+  </section>
+
+  <!-- Decisiones -->
+  <section class="sec" aria-labelledby="s-dec">
+    <div class="sec-head">
+      <h2 id="s-dec">Decisiones que <span class="y">vale conocer</span></h2>
+      <p>Las cuatro que más afectan el resultado, y por qué quedaron así.</p>
+    </div>
+    <div class="cards">
+      <article class="card">
+        <div class="card-h">Fuerza bruta <span>a propósito</span></div>
+        <div class="card-b">
+          <p>La búsqueda compara contra todos los vectores. Suena mal y no lo es.</p>
+          <ul>
+            <li>50.000 fragmentos son 73 MB y el producto punto tarda milisegundos.</li>
+            <li>Un índice k-NN solo paga por encima de eso.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-h">Vector binario <span>no Decimal</span></div>
+        <div class="card-b">
+          <p>El vector va a DynamoDB como bytes, no como lista de números.</p>
+          <ul>
+            <li>384 floats = 1,5 KB con <code>tobytes()</code>.</li>
+            <li>DynamoDB no tiene float nativo: tocaría convertir cada número a <code>Decimal</code>.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-h">Partir por párrafo <span>no por largo</span></div>
+        <div class="card-b">
+          <p>Cortar a mitad de frase es lo que más daña la recuperación.</p>
+          <ul>
+            <li>Solape de 150 caracteres para darle contexto al fragmento siguiente.</li>
+            <li>El tamaño del fragmento es el parámetro que más mueve la calidad.</li>
+          </ul>
+        </div>
+      </article>
+    </div>
+    <div class="two">
+      <div class="band-black">
+        <h3>El modelo tiene que hablar tu idioma</h3>
+        <p>Usé <code>paraphrase-multilingual-MiniLM-L12-v2</code>. Un modelo entrenado solo en inglés sobre documentos en español <b>no falla</b>: simplemente recupera fragmentos mediocres, y ese síntoma es mucho más difícil de diagnosticar que un error.</p>
+        <p style="font-size:13.5px">Verificado: «pide un reembolso» contra «que me devuelvan la plata» da 0,54 de similitud; contra «error 500 del ERP» da 0,16.</p>
+      </div>
+      <div class="band-grey">
+        <h3>Lo que falta antes de usarlo en serio</h3>
+        <ul>
+          <li><b>Reindexar solo lo que cambió.</b> Hoy <code>ingest.py</code> reescribe todo.</li>
+          <li><b>Un set de preguntas con respuesta esperada.</b> Sin eso no sabes si cambiar el tamaño del fragmento mejoró o empeoró.</li>
+          <li><b>Reranking.</b> Traer 20 fragmentos y reordenarlos antes de armar el prompt.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p class="pill">Floci te da <em>AWS en tu máquina</em>; el RAG lo escribes tú. Empieza <em>local</em>, cambia <em>una variable</em>, y el mismo código sirve para la nube real.</p>
+    <img class="logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABH8AAAGBCAYAAAD/ix1MAAAACXBIWXMAAC4jAAAuIwF4pT92AAATU0lEQVR4nO3dW3LjOrZFUTHDbXD/u3fdCdaHr49fkqwHSey9MMZfRVSmIBLQIWZC9rL+32k9wcxe12X0EOBRy7Lc9Rm+ruY7AADM5t/oAQAAAACwH/EHAAAAIJj4AwAAABBM/AEAAAAIJv4AAAAABBN/AAAAAIKJPwAAAADBxB8AAACAYOIPAAAAQDDxBwAAACCY+AMAAAAQTPwBAAAACCb+AAAAAAQTfwAAAACCiT8AAAAAwcQfAAAAgGDiDwAAAEAw8QcAAAAgmPgDAAAAEEz8AQAAAAgm/gAAAAAEE38AAAAAgok/AAAAAMHEHwAAAIBg4g8AAABAsJfDXul1XQ57Lfp7W9bRQwAAAIAETv4AAAAABBN/AAAAAIKJPwAAAADBxB8AAACAYOIPAAAAQDDxBwAAACCY+AMAAAAQTPwBAAAACCb+AAAAAAQTfwAAAACCiT8AAAAAwcQfAAAAgGDiDwAAAEAw8QcAAAAgmPgDAAAAEEz8AQAAAAgm/gAAAAAEE38AAAAAgok/AAAAAMHEHwAAAIBg4g8AAABAMPEHAAAAIJj4AwAAABBM/AEAAAAIJv4AAAAABBN/AAAAAIKJPwAAAADBxB8AAACAYOIPAAAAQDDxBwAAACCY+AMAAAAQTPwBAAAACCb+AAAAAAQTfwAAAACCiT8AAAAAwcQfAAAAgGDiDwAAAEAw8QcAAAAgmPgDAAAAEEz8AQAAAAgm/gAAAAAEE38AAAAAgok/AAAAAMHEHwAAAIBg4g8AAABAMPEHAAAAIJj4AwAAABBM/AEAAAAIJv4AAAAABBN/AAAAAIK9jB5AZcuyrEe91rquy1GvBQAAAMzDyR8AAACAYOIPAAAAQDDxh3rejvu6HQAAAKQTf6hlRPh5W1bBCQAAgFTiD3WMDjCjXx8AAAB2IP4wXqWTN1XGAQAAABvxq94Zq2JseVvW0+u6jB4GAAAwr2UpuFf6f+tqv9SNkz+MUzH8fKg8NgAAALiD+AOXCEAAAAAEEH8Yo0tY6TJOAAAAuED84XiCCgAAABxG/IG/iFUAAAA0Jv5wrK4hpeu4AQAAmJ74AwAAABBM/OE43U/PdB8/AAAAUxJ/AAAAAIKJPxzDqRkAAAAY4mX0AKCVt2U9va7L6GEA+1oWwZo+1tV/lwCA65z8AQAAAAgm/gAAAAAEE38AAAAAgok/7M8PewYAAIBhxB8AAACAYOIPAAAAQDDxBwAAACCY+AMAAAAQTPwBAAAACCb+AAAAAAQTfwAAAACCiT/s73VdRg8BAAAAZiX+AAAAAAQTfwAAAACCiT9wD19hAwAAoBnxh2OIJgAAADCE+AMAAAAQTPyBWzm9BAAAQEPiD8cRTwAAAOBw4g/cQrgCAACgKfGHY4koAAAAcCjxh+N1C0DdxgsAAABfiD9wjfADAABAc+IPY4gqAAAAcAjxh3GqB6Dq4wMAAIAbiD+MVTWwVB0XAAAA3En8YbxqoaXaeAAAAOAJ4g81VAkuVcYBAAAAG3kZPQD4z0d4eVvWYa8NAAAAYcQf6nldl0MDkPAD/LCuPhdOp9NpWQbE+Bu5RwAAtxN/qOmIU0CiDwAAABMQf6jta6DZIgQJPgAAAExG/KGPn+Hmlhgk9gAAADA58Ye+hB0AAAD4k1/1DgAAABBM/AEAAAAIJv4AAAAABBN/AAAAAIKJPwAAAADBxB8AAACAYOIPAAAAQDDxBwAAACCY+AMAAAAQTPwBAAAACCb+AAAAAAQTfwAAAACCiT8AAAAAwcQfAAAAgGDiDwAAAEAw8QcAAAAgmPgDAAAAEEz8AQAAAAgm/gAAAAAEexk9AAAAGGVZlvXr/17XdRk1Fqjo5xo5nawTsszy3wHxZ1LnPsTpIfXDCACetcXzzSN/h/82U93Wz/7P/H3WC0d4Zo7e+2e7zGnxBwCAdir9Q9alsXTZEJCj0rq4xHpha6PnfZfTceIPAADljX64f8QsXyVgjI5r4pouG2jG6zD3K37+iz8AAJTT4eH+XhU3A/SRuCb+8vU9Wy9z6z7/K8xl8QcAgBK6P9zf6+P92tRyyWxr4hrxdE6Ja2DUZ7/4AwDAUIkP9/eo8C/C1DH7eriVdZNthnVwdAQSfwAAONwMD/aPcBpoTtbDc6ybHDOuhaPmr/gDAMBhZnywf4TN7BysB3hnLez/uS/+AACwOw/2jxGB8lgL8Ml6+G1ZlnWPz3zxBwCA3Xiw34YI1J+1AN9ZE5ft8Zn/b6u/CAAAvvJgvz3XtJ9lWVb3DT5ZE7fb8jqJPwAAbMqD/b5c3z7cJ/jOmrjfVtfM174AANiEh/pj7fVzIXietQDfWRPP2eLz3skfAACe5sF+DNe9Fqey4DdrYhvPXkfxBwCAh9nsjuce1OAewG/WxbaeuZ7iDwAAD/FQX4v7MYb4BudZF/t49LqKPwAA3M1DfU3uy7FcbzjP2tjXI9dX/AEA4C4e6mtzf/bntA9cZm0c497rLP4AAHATG94+3Kf9uLZwmfVxrHuut/gDAMCfPND3455tzzWFy6yP2sQfAACu8kDfl3u3HdcSLrM+xrn12os/AABc5IG+P/fwea4hXGZ9jHfLPXg5YiDUs67rMnoMtzjyg6TLNQGAo3igz7Esy+pZ5zHWAVxmffTh5A8AAL94oAfrAOjjr88r8QcAgG9m2/DOciJmtvv6LNcLrrNGevG1LwAA/pP4MH9L3Lnl/5NwbXz96zYJ9xr2ZI3UdO0zXvwBAOB0OuU8zO8VN37+vV2vlwB0Xdf7epSUdUCOa59n5ucn8QcAgPYPyCNixsdrdr92fJr5Xj66hmY5Ncd4j8zRS38meU5eCvziDwAAbVU4wdIxAjn981un+/eso++900I86oiTnLPMR/EHAGByHR98K4aLjhGIdzPcs0prRgzimlFxMn0eij8AABPr9rBbaQN7SZeNhNM/76rfp2d0ub8znsLgt9Hztctn9y3Ofb77Ve8AAJPq9oA7emNwrw7j7TYHtpb6/td1XTrMv3M6j53HVbrnlcayJSd/AAAor+vD+LquS2pgoJ6u6+ScpFMYXFZ1zibOPyd/AAAm1OWBNuEUQPXxd5kLW0t63wnr5JKP95b6/mbW4Z52GOMlPz/jxB8AgMl02fR2fuj+Kem9JOiyBv4yWxSZ6b0m6zZvO431GvEHAIByUh62v6r8nlJiyEwqz6c9dQsHfNf13nUd91fiDwDARDps8hMesi9Jfm9ddFgD14gf71yHfrrfr+7jF38AACij+8P1LWZ4j1UlhJ/RY6hGBOoh5R51ex9fP/PEHwCASVTf+HZ7qE5TfX7MTOD4m+tTl3tTg/gDADCB6hv72TYHs73fCqqvgUvMFTpLnL9d35P4AwAAA1TcQHQNJKkqzhG4VfL87fjexB8AgHDVN/QdH6LppfoaOMe6ALb0MnoAQFFvdz4kvXpAAeB+s29w13VdOoYJ9jX7uqC/GeZwl8/vZVnWdV0X8Qf4dG/wufRnhSAAaOtjozB6HFvpsDn7KunaMydzuCbxB2b3TPC55e8UggCGqrzxtUGA76wJYC/iD8xqj+hz7XVEIAC+sMn91OWrAx11uq7WBAlmm8edPr/9wGeY0VHhZ/RrAkyuywMp9Zg7wL1mCz/dOPkDMxkdYJwCAuBkg8AxOgUsawL66nL6x8kfmMXo8PNVpbEAQAE2//Ny70lgHtcn/sAMKsaWimMCCFL1XyFtEADgeOIPpKscWSqPDQBoq2r8/EkMJYF53IP4A8nEFQDgQV0CSlc2zJCj+npelmUVf4CxBCqAzVXdtFd/OB7N9QFgL+IPpOoUVTqNFQAorWr8/EroI4W53If4A4k6xpSOYwYAAGhA/AEACFL11IN/HYZ31gIwgvgDaTqfoOk8dgAIVDUmAuMJmd9Vvx7iDwAAEEGsAjhP/AEAADhA9ZMBQC7xB5IkfG0q4T0A8I0NLwCMJf4AAITwlReoSwQFRnoZPQAAALKJUhzBPIPjiJn9OPkDKZK+LpX0XgAAAAYTfwAAAACCiT8AAAA78hUZYDTxBwAAACCY+AMAAAAQTPwBAAAACCb+AAAE8GuumZn5D3Cd+AMAAAAQTPwBAADYid/0BVQg/gAAAAAEE38AAAAAgok/AAAAAMFeRg+Ad51+Q4HvLRf1ui6ntz7z6KpXcwwAAGArTv4AAAAABBN/AAAAAIKJP5Ak4etSCe8BAACgEPEHAAAAIJj4AwAAABBM/IE0nb821XnsAAAARYk/AAAAAMHEH0jU8QRNxzEDAAA0IP5Aqk4xpdNYAQDusCzLOnoMAOIPJOsQVTqMEaCBdfV5CgCc9zJ6AAAAZBOmAGAsJ38gXeWTNZXHBgAAEEL8gRlUjCwVxwQAABBI/IFZVIktr+tSZiwAAAATEH9gJqPDi+gDMCW/7Yi9Vf+5UtYAMJr4AzMaEWGEHwAAgCHEH5jVkTFG+AEAABhG/AEAAAAIJv4AAISo/nNPYGZ+7g8wkvgDAMDubHwBYBzxBwAAaM/JN4DLxB8AAIADOAEHjCL+AAAAAAR7GT2AyhwdBQC6Wdd1qXq6YFmW1fMVs7MOgBGc/AEAACKIKgDniT8AABym6qkkOJJ1ABxN/AEAAAAIJv4AAISp/tUXpx7AOgCOJf4AAAAxqsfPrwQg4CjiDwAAh7PpBYDjiD8AAIE6nX6ArXWa/0IocATxBwCAIWx64Z21AOxN/AEAYBibXnhnLQB7En8AAEJ1+uoLbK3j/BeAgL2IPwAADGXDC5+sB2AP4g8AAMPZ8LKHjqd/TifrAdie+AMAEKzT5teGd1/LsqyucR/uFbAl8QcAgDJsePcx83XtFEB/mvm+3eojarpWcJ34AwAQrtvm1yZuOzbF/bl/l7k2cDvxBwCAcmzqniP6fNctgP7kXn5nfsP9xB8AgAl03Pza4N3PNcvl3r5zDeAx4g8AAKXZ7P1NGPhbxwB6zqz32RyH54g/AACT6Lz5tfE7z3W5T+c18NVM932m9wp7En8AACbSffNrE/jOhpjTKXseJL83GOFl9AAAAOAeHxvC7iHrXjbC21jXdUm7lilrIu2+QCXiDwDAZFI2v1/fQ/dN7yUJ96milDXwU9c1kXgvoBrxBwCA9lJOPpxONsJHSQ1AH6qHoORrDxWJPwAAE0rd+Fbf8J6TeB+o5eccG7E2zHMYS/wBAJhUagD6UGHDe07yNe8mfQ1ccu49b7k+ZrymUJ34AwAwsZk2v5fe5x5RaJZrmmCmNXCNawDZxB8AAKZm04sABKT7N3oAAACMVeXrUDCSdQAkE38AALDxhZN1AOQSfwAAOJ1ONr5wOlkHQCbxBwCA/9j4gnUA5BF/AAD4xsYXrAMgi/gDAMAvNr5gHQA5xB8AAM6y8QXrAMgg/gAAcJGNL7yvA2sB6Ez8AQDgKpteeGctAF2JPwAA/MnJB3hnHQAdiT8AANzMxhfEUKAf8QcAgLvY9MI7awHoQvwBAOBuTj7AO2sB6ED8AQDgYTa9fYgU+3JtgcpeRg8AAIDePja9y7Kso8fCb6LEcawFoCrxBwCATdj41iL6jGMtHM98h+vEHwAANmXjO44NcC3Wwv7MebiN+AMAwC5sfI9jA1ybtbAt8x3uJ/4AALArG9992AD38/WeWQ/3M+fhceIPAACHsPF9ns1vDlH0NuY8bEP8AQDgcELQbWx881kLv5n3sD3xBwCAoWx+P9n0zu3n/Z9lPZj3sD/xBwA4y8M4I8y0+bXG+EvqejD3b+M69VP5nok/AACUde5ButsGuPJmgF66rQdzH+oQfwAAaOWvDeVRm2EbWyoYuR6sAehD/AEAIIoNKXyyHoDT6XT6N3oAAAAAAOxH/AEAAAAIJv4AAAAABBN/AAAAAIKJPwAAAADBxB8AAACAYH7VO6X51ZQAAADwHCd/AAAAAIKJPwAAAADBxB8AAACAYOIPAAAAQDDxBwAAACCY+AMAAAAQTPwBAAAACCb+AAAAAAQTfwAAAACCiT8AAAAAwcQfAAAAgGDiDwAAAEAw8QcAAAAgmPgDAAAAEEz8AQAAAAgm/gAAAAAEE38AAAAAgok/AAAAAMHEHwAAAIBg4g8AAABAMPEHAAAAIJj4AwAAABBM/AEAAAAIJv4AAAAABBN/AAAAAIKJPwAAAADBxB8AAACAYOIPAAAAQDDxBwAAACCY+AMAAAAQTPwBAAAACCb+AAAAAAQTfwAAAACCiT8AAAAAwcQfAAAAgGDiDwAAAEAw8QcAAAAgmPgDAAAAEEz8AQAAAAgm/gAAAAAEE38AAAAAgok/AAAAAMHEHwAAAIBg4g8AAABAMPEHAAAAIJj4AwAAABBM/AEAAAAIJv4AAAAABBN/AAAAAIK9HPZKb8t62GsBAAAAcDqdnPwBAAAAiCb+AAAAAAQTfwAAAACCiT8AAAAAwcQfAAAAgGDiDwAAAEAw8QcAAAAgmPgDAAAAEEz8AQAAAAgm/gAAAAAEE38AAAAAgok/AAAAAMHEHwAAAIBg4g8AAABAMPEHAAAAIJj4AwAAABBM/AEAAAAIJv4AAAAABBN/AAAAAIKJPwAAAADBxB8AAACAYOIPAAAAQDDxBwAAACCY+AMAAAAQTPwBAAAACCb+AAAAAAT7H6ZV/D7UZJEZAAAAAElFTkSuQmCC" alt="LT Tech">
+  </footer>
+
+</main>
+
+<script>
+const BACKENDS = {
+  local: {
+    filas: [
+      ["Documentos", "almacen/docs/*.md", "pathlib.write_text()"],
+      ["Fragmentos", "almacen/chunks.jsonl", "json.dumps()"],
+      ["Vectores", "almacen/vectores.npy", "np.save()"],
+      ["Búsqueda", "en tu proceso", "vectores @ q"],
+    ],
+    nota: "<h3>Para qué sirve</h3><p>Arrancar hoy, sin instalar nada más. Es el modo en que conviene calibrar el tamaño del fragmento y las preguntas: el ciclo es instantáneo y no hay un servicio de por medio que pueda confundirte.</p>"
+  },
+  floci: {
+    filas: [
+      ["Documentos", "S3 · bucket rag-docs", "s3.put_object()"],
+      ["Fragmentos", "DynamoDB · tabla rag-chunks", "ddb.put_item()"],
+      ["Vectores", "mismo item, atributo binario", "v.tobytes() → {\"B\": …}"],
+      ["Búsqueda", "scan + coseno en tu proceso", "ddb.scan() → vectores @ q"],
+    ],
+    nota: "<h3>Para qué sirve</h3><p>Probar la integración con AWS sin abrir cuenta. Ese mismo código de <code>boto3</code> corre contra la nube real quitando el <code>endpoint_url</code>. El <code>scan</code> trae todos los items: a escala eso se paga, y es justo cuando migrarías al k-NN de OpenSearch.</p>"
+  }
+};
+
+const filas = document.getElementById("filas");
+const nota = document.getElementById("nota-back");
+const esc = s => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+function ver(cual) {
+  const b = BACKENDS[cual];
+  filas.innerHTML = b.filas.map(([a, d, c]) =>
+    `<tr><td>${a}</td><td class="mono">${esc(d)}</td><td class="mono">${esc(c)}</td></tr>`).join("");
+  nota.innerHTML = b.nota;
+  document.getElementById("b-local").setAttribute("aria-pressed", String(cual === "local"));
+  document.getElementById("b-floci").setAttribute("aria-pressed", String(cual === "floci"));
+}
+
+document.getElementById("b-local").addEventListener("click", () => ver("local"));
+document.getElementById("b-floci").addEventListener("click", () => ver("floci"));
+ver("local");
+</script>

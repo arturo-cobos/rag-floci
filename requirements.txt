@@ -1,0 +1,4 @@
+# Instalar con:  uv pip install -r requirements.txt
+numpy>=2.0
+boto3>=1.35          # solo se usa con RAG_BACKEND=floci
+fastembed>=0.4       # embeddings en CPU vía onnxruntime, sin torch

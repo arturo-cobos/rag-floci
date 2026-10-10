@@ -1,0 +1,11 @@
+# Entorno y datos generados
+.venv/
+almacen/
+__pycache__/
+*.py[cod]
+
+# Secretos
+.env
+.env.*
+
+.DS_Store
