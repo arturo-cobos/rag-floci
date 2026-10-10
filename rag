@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Entrada única del proyecto. Usa el Python del entorno y arma PYTHONPATH,
+# así no hay que activar nada ni recordar variables.
+#
+#   ./rag ingest
+#   ./rag buscar     "¿qué guarda un Control Record?"
+#   ./rag preguntar  "¿qué es un Behavior Qualifier?"
+set -euo pipefail
+cd "$(dirname "$0")"
+
+if [ ! -x .venv/bin/python ]; then
+  echo "Falta el entorno. Créalo con:" >&2
+  echo "  uv venv --python 3.12 .venv && uv pip install -r requirements.txt" >&2
+  exit 1
+fi
+
+case "${1:-}" in
+  ingest|buscar|preguntar)
+    cmd="$1"; shift
+    PYTHONPATH=src exec .venv/bin/python "src/$cmd.py" "$@"
+    ;;
+  *)
+    echo "Uso:" >&2
+    echo "  ./rag ingest                      indexa ./docs" >&2
+    echo "  ./rag buscar     \"tu pregunta\"    solo recupera" >&2
+    echo "  ./rag preguntar  \"tu pregunta\"    recupera y responde" >&2
+    exit 1
+    ;;
+esac

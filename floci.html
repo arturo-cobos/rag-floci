@@ -228,8 +228,8 @@
           <h3>Cambiar la variable y reindexar</h3>
           <p class="porque">Aquí está el punto del diseño: no se toca ni una línea de código. <code>ingest.py</code> crea el bucket y la tabla si no existen.</p>
           <pre><span class="p">$</span> export RAG_BACKEND=floci
-<span class="p">$</span> python src/ingest.py
-<span class="p">$</span> python src/buscar.py <span class="c">"¿qué guarda un Control Record?"</span></pre>
+<span class="p">$</span> ./rag ingest
+<span class="p">$</span> ./rag buscar <span class="c">"¿qué guarda un Control Record?"</span></pre>
           <div class="espera"><b>Deberías ver</b>La primera línea cambia a <code>Almacén: floci (http://localhost:4566)</code>. Los resultados son idénticos: cambió el almacén, no los vectores.</div>
         </div>
       </div>

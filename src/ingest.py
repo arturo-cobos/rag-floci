@@ -7,9 +7,17 @@ Corre esto cada vez que cambien los documentos.
 import pathlib
 import sys
 
-import config
-import embed
-import store
+try:
+    import config
+    import embed
+    import store
+except ImportError as e:
+    raise SystemExit(
+        f"Falta la dependencia '{e.name}': estás usando el Python del sistema,\n"
+        "no el del proyecto.\n\n"
+        "Usa el lanzador:      ./rag ingest ...\n"
+        "O activa el entorno:  source .venv/bin/activate && export PYTHONPATH=src"
+    )
 
 DOCS = pathlib.Path(__file__).parent.parent / "docs"
 

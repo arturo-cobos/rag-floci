@@ -13,7 +13,15 @@ import sys
 import urllib.error
 import urllib.request
 
-import buscar
+try:
+    import buscar
+except ImportError as e:
+    raise SystemExit(
+        f"Falta la dependencia '{e.name}': estás usando el Python del sistema,\n"
+        "no el del proyecto.\n\n"
+        "Usa el lanzador:      ./rag preguntar ...\n"
+        "O activa el entorno:  source .venv/bin/activate && export PYTHONPATH=src"
+    )
 
 MODELO = "claude-sonnet-5"
 API = "https://api.anthropic.com/v1/messages"

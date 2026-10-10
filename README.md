@@ -36,13 +36,14 @@ implementaciones detrás de una sola interfaz.
 ## Correr
 
 ```bash
-source .venv/bin/activate
-export PYTHONPATH=src
-
-python src/ingest.py                              # indexa ./docs
-python src/buscar.py "¿qué guarda un Control Record?"
-python src/preguntar.py "¿qué es un Behavior Qualifier?"
+./rag ingest                                      # indexa ./docs
+./rag buscar     "¿qué guarda un Control Record?"
+./rag preguntar  "¿qué es un Behavior Qualifier?"
 ```
+
+El lanzador `./rag` usa `.venv/bin/python` y arma `PYTHONPATH`: corre desde
+cualquier directorio sin activar el entorno. Si invocas los scripts a mano con
+el Python del sistema, te dicen qué hacer en vez de tirar un traceback.
 
 Para la generación, exporta `ANTHROPIC_API_KEY`. Sin ella, `preguntar.py` te
 muestra el prompt que habría enviado.
@@ -56,7 +57,7 @@ curl -fsSL https://floci.io/install.sh | sh     # CLI
 floci start                                      # necesita Docker corriendo
 
 export RAG_BACKEND=floci
-python src/ingest.py                             # crea bucket y tabla solos
+./rag ingest                                     # crea bucket y tabla solos
 ```
 
 ## Huella

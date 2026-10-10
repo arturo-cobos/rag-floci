@@ -6,10 +6,17 @@ Uso:
 """
 import sys
 
-import numpy as np
-
-import embed
-import store
+try:
+    import numpy as np
+    import embed
+    import store
+except ImportError as e:
+    raise SystemExit(
+        f"Falta la dependencia '{e.name}': estás usando el Python del sistema,\n"
+        "no el del proyecto.\n\n"
+        "Usa el lanzador:      ./rag buscar ...\n"
+        "O activa el entorno:  source .venv/bin/activate && export PYTHONPATH=src"
+    )
 
 
 def buscar(pregunta: str, k: int = 4) -> list[tuple[float, dict]]:
