@@ -5,7 +5,7 @@ Recupera los fragmentos relevantes y le pide a Claude que responda SOLO con
 eso. Sin API key, muestra el prompt que habría enviado — igual se entiende.
 
 Uso:
-    python src/preguntar.py "¿qué guarda un Control Record?"
+    ./rag preguntar "¿qué guarda un Control Record?"
 """
 import json
 import os
@@ -74,8 +74,17 @@ def main():
         sys.exit('Uso: python src/preguntar.py "tu pregunta"')
     pregunta = " ".join(sys.argv[1:])
 
-    resultados = buscar.buscar(pregunta, k=4)
+    resultados = buscar.buscar(pregunta)
     print(f"\nPregunta: {pregunta}")
+    if not resultados:
+        # No llamamos al modelo: sin fragmentos solo podría inventar, y
+        # además costaría tokens para nada.
+        print("─" * 62)
+        print(f"\nNingún fragmento pasa el umbral. El más parecido quedó en "
+              f"{buscar.mejor_puntaje(pregunta):.3f}.")
+        print("El corpus no cubre esta pregunta, así que no se llama al modelo.\n")
+        return
+
     print("Fragmentos recuperados: " + ", ".join(
         f"{c['id']} ({p:.2f})" for p, c in resultados))
     print("─" * 62)

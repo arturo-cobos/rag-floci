@@ -28,3 +28,15 @@ CACHE_MODELO = os.path.expanduser(
 # Tamaño de fragmento en caracteres, y cuánto se solapan.
 CHUNK = 800
 SOLAPE = 150
+
+# Cuántos fragmentos se le pasan al modelo, como máximo.
+TOP_K = 4
+
+# Y el mínimo de similitud para que uno entre. Sin este corte, `k` fijo mete
+# relleno: fragmentos que no hablan del tema pero llenan el cupo. Eso diluye la
+# señal, multiplica los tokens que pagas y le da al modelo material para
+# mezclar conceptos que no van juntos.
+#
+# 0.40 es un punto de partida, no una verdad. Súbelo si ves relleno en las
+# respuestas; bájalo si te quedas sin fragmentos en preguntas legítimas.
+MINIMO = 0.40

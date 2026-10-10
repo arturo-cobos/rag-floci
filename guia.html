@@ -256,6 +256,7 @@ Listo: 10 fragmentos, 384 dimensiones cada uno.</pre></div>
 <span class="p">$</span> export ANTHROPIC_API_KEY=sk-ant-…
 <span class="p">$</span> ./rag preguntar <span class="c">"¿qué es un Behavior Qualifier?"</span></pre>
           <div class="espera"><b>El prompt incluye</b>«Responde usando únicamente los fragmentos de abajo. Si no alcanzan, dilo: no inventes.» Esa restricción es la que baja las alucinaciones: el modelo tiene de dónde citar.</div>
+          <div class="espera"><b>Si nada pasa el umbral</b>No llama al modelo. Te dice cuánto sacó el mejor fragmento, para que sepas si el corpus no lo cubre o si <code>MINIMO</code> está muy alto.</div>
         </div>
       </div>
 
@@ -308,6 +309,16 @@ Listo: 10 fragmentos, 384 dimensiones cada uno.</pre></div>
         </div>
       </article>
       <article class="card">
+        <div class="card-h">Umbral de relevancia <span>no k fijo</span></div>
+        <div class="card-b">
+          <p>Un <code>k</code> fijo mete relleno: fragmentos que llenan el cupo sin hablar del tema.</p>
+          <ul>
+            <li>Por debajo de <code>MINIMO</code> (0.40) no entran.</li>
+            <li>Devolver <b>nada</b> es una respuesta válida: el corpus no lo cubre.</li>
+          </ul>
+        </div>
+      </article>
+      <article class="card">
         <div class="card-h">Fuerza bruta <span>a propósito</span></div>
         <div class="card-b">
           <p>La búsqueda compara contra todos los vectores. Suena mal y no lo es.</p>
@@ -329,6 +340,7 @@ Listo: 10 fragmentos, 384 dimensiones cada uno.</pre></div>
         <ul>
           <li><b>El tamaño del fragmento</b> es el parámetro que más mueve la calidad. Muy corto pierde contexto; muy largo promedia demasiados temas y deja de parecerse a ninguna pregunta.</li>
           <li><b>A veces gana el fragmento vecino.</b> Lo vi en las pruebas: la respuesta estaba en el segundo resultado, no en el primero. Entra en el top-4 así que el prompt la recibe, pero es la señal de que hay que calibrar.</li>
+          <li><b>El umbral es un punto de partida, no una verdad.</b> Con 0.40, «¿qué es un Behavior Qualifier?» pasa de 4 fragmentos a 1 —el correcto— y una pregunta ajena al corpus no llega a ninguno. Pero el número correcto depende de tus documentos.</li>
         </ul>
       </div>
     </div>
@@ -359,7 +371,14 @@ Listo: 10 fragmentos, 384 dimensiones cada uno.</pre></div>
         <div class="num">3</div>
         <div class="paso-b">
           <h3>Reranking</h3>
-          <p class="porque">Traer 20 fragmentos y reordenarlos con un modelo más fino antes de armar el prompt. Es lo que arregla el caso del fragmento vecino.</p>
+          <p class="porque">Traer 20 fragmentos y reordenarlos con un modelo más fino antes de armar el prompt. Es lo que arregla el caso del fragmento vecino, que el umbral no resuelve: ahí el problema no es relleno sino orden.</p>
+        </div>
+      </div>
+      <div class="paso opt">
+        <div class="num">4</div>
+        <div class="paso-b">
+          <h3>Calibrar el umbral con datos</h3>
+          <p class="porque">El 0.40 de <code>MINIMO</code> salió a ojo. Con el set de preguntas del punto 1 se mide de verdad: cuántas preguntas legítimas se quedan sin fragmentos, y cuánto relleno entra.</p>
         </div>
       </div>
     </div>

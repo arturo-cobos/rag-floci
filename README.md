@@ -78,6 +78,12 @@ Medido en CPU, sin GPU.
 son 1.5 KB en `tobytes()`, y DynamoDB no tiene tipo float nativo: la
 alternativa era convertir cada número a `Decimal`.
 
+**Hay un umbral de relevancia, no un `k` fijo.** `MINIMO = 0.40` en
+`config.py`. Sin ese corte, pedir 4 fragmentos siempre devuelve 4, aunque tres
+no hablen del tema: eso diluye la señal, multiplica los tokens y le da al
+modelo material para mezclar conceptos. Si nada pasa el umbral, `preguntar.py`
+**no llama al modelo** — sin fragmentos solo podría inventar.
+
 **La búsqueda es fuerza bruta a propósito.** Comparar contra todos es exacto y
 tarda milisegundos hasta decenas de miles de fragmentos. Un índice aproximado
 (el k-NN de OpenSearch) solo paga por encima de eso, y en Floci OpenSearch
@@ -93,7 +99,9 @@ un síntoma mucho más difícil de diagnosticar.
 
 ## Lo que falta antes de usarlo en serio
 
+- Un conjunto de preguntas con su respuesta esperada. Es lo primero: sin eso,
+  mover `CHUNK` o `MINIMO` es a ciegas.
+- Calibrar `MINIMO` con esos datos. El 0.40 salió a ojo.
 - Reindexar solo lo que cambió, en vez de todo (`ingest.py` reescribe siempre).
-- Un conjunto de preguntas con su respuesta esperada, para medir si un cambio
-  de tamaño de fragmento mejora o empeora.
-- Reranking: traer 20 fragmentos y reordenarlos antes de armar el prompt.
+- Reranking: traer 20 fragmentos y reordenarlos antes de armar el prompt. Eso
+  arregla el caso del fragmento vecino, que el umbral no resuelve.
